@@ -1,0 +1,10 @@
+# Example lyric override file for OpenJianpu
+# Syntax:
+# - Lines without prefix apply to all singing voices
+# - Voice prefixes: S:, A:, T:, B:
+# - Verse numbers: 2:, 3: or S 2:
+# - Hyphenated words are placed syllable-by-syllable (e.g. Ha-le-lu-ya)
+# - Underscore '_' indicates a melisma (note without a syllable)
+# - Vertical bar '|' is ignored (can be used as visual barline marker)
+
+Ha-le-lu-ya | A-men

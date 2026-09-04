@@ -1,0 +1,70 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openjianpu"
+version = "0.1.0"
+description = "High-performance, standalone vector engine converting MusicXML & sheet music to Numbered Musical Notation (Not Angka / Jianpu)"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "Alvin Vincent", email = "alvnvincent30@gmail.com" }
+]
+requires-python = ">=3.9"
+dependencies = [
+    "pycairo>=1.20.0",
+    "pypdf>=3.0.0",
+]
+keywords = [
+    "music",
+    "notation",
+    "musicxml",
+    "jianpu",
+    "not-angka",
+    "cipher-notation",
+    "sheet-music",
+    "choir",
+    "satb",
+    "typesetting",
+    "vector-pdf",
+    "cairo"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Religion",
+    "Intended Audience :: Education",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Multimedia :: Sound/Audio :: Conversion",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/Alvnvnc/OpenJianpu"
+Repository = "https://github.com/Alvnvnc/OpenJianpu.git"
+Issues = "https://github.com/Alvnvnc/OpenJianpu/issues"
+
+[project.scripts]
+openjianpu = "openjianpu.cli:main"
+notangka = "openjianpu.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
