@@ -1,284 +1,235 @@
-# OpenJianpu
+<p align="center">
+  <h1 align="center">OpenJianpu</h1>
+  <p align="center"><b>The open-source, high-performance vector typesetting engine for Numbered Musical Notation (Jianpu / 简谱 / Not Angka).</b></p>
+</p>
 
-[![CI](https://github.com/Alvnvnc/OpenJianpu/actions/workflows/ci.yml/badge.svg)](https://github.com/Alvnvnc/OpenJianpu/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Python: 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/)
-[![Tests: 60+ Passed](https://img.shields.io/badge/tests-60%2B%20passed-brightgreen.svg)](tests/)
-[![Language: Indonesian](https://img.shields.io/badge/docs-Bahasa%20Indonesia-green.svg)](README.id.md)
+<p align="center">
+  <a href="https://github.com/Alvnvnc/OpenJianpu/actions/workflows/ci.yml"><img alt="CI Build" src="https://github.com/Alvnvnc/OpenJianpu/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-blue.svg"></a>
+  <a href="https://www.python.org/"><img alt="Python: 3.9+" src="https://img.shields.io/badge/python-3.9+-blue.svg"></a>
+  <a href="tests/"><img alt="Tests" src="https://img.shields.io/badge/tests-60%2B%20passed-brightgreen.svg"></a>
+  <a href="https://github.com/Alvnvnc/OpenJianpu/releases"><img alt="Release" src="https://img.shields.io/badge/release-v0.1.0-orange.svg"></a>
+</p>
 
-**OpenJianpu** is a high-performance, standalone vector typesetting engine and converter that transforms **MusicXML** and Western sheet music directly into publication-grade **Numbered Musical Notation** (*Jianpu / 简谱 / Not Angka*).
-
-Designed specifically for choral ensembles (SATB), vocal arrangements, and liturgical hymnals (*Puji Syukur, Madah Bakti, Kidung Jemaat, lagumisa.web.id*), OpenJianpu produces crisp, typography-grade vector PDFs in milliseconds—**completely independent of LilyPond, MuseScore, or JVM runtimes**.
-
----
-
-## 📖 Table of Contents
-- [Why OpenJianpu?](#-why-openjianpu)
-- [Key Engineering Innovations](#-key-engineering-innovations)
-- [Pipeline Architecture](#-pipeline-architecture)
-- [Installation](#-installation)
-- [CLI Reference & Usage](#-cli-reference--usage)
-  - [1. Direct Conversion (`convert`)](#1-convert-musicxml-to-pdf)
-  - [2. Rhythmic Beat Auditing (`check`)](#2-audit-rhythm-and-meter-consistency)
-  - [3. Intermediate JSON Pipeline (`xml2json` & `render`)](#3-two-way-json-interchange)
-  - [4. External Lyric Alignment (`--lyrics-file`)](#4-external-lyric-alignment---lyrics-file)
-- [Notation Conventions & Specimen Standards](#-notation-conventions--standards)
-- [Python API](#-python-api)
-- [Corpus Benchmark & Verification](#-corpus-benchmark--verification)
-- [License](#-license)
-
----
-
-## 💡 Why OpenJianpu?
-
-Numbered musical notation (1 to 7 corresponding to movable-Do scale degrees) is sung and read by hundreds of millions of choristers, vocalists, and students across Southeast Asia (Indonesia), East Asia (China, Taiwan), and global choral institutions.
-
-However, modern notation software (Sibelius, Finale, Dorico, MuseScore) fundamentally treats sheet music through Western five-line staves. Past attempts to automate conversion have suffered from critical flaws:
-1. **Heavy Toolchain Bloat**: Preprocessors like `jianpu-ly` rely on full GNU LilyPond installations, requiring 10–30 seconds per score and consuming hundreds of megabytes of disk space.
-2. **Choral Voice Collapse**: Most converters fail on standard choral scores where 4 voices (SATB) are condensed into two closed staves (Soprano/Alto on treble, Tenor/Bass on bass), merging voices into unreadable chords or losing voice identities.
-3. **Silent Corruption on OMR**: MusicXML scanned from OMR tools (Audiveris, SmartScore) frequently contains rhythm defects (dust specks read as dots, phantom rests, unbracketed triplets). Naive converters silently corrupt durations or break barlines.
-4. **Mangled Lyric Hyphenation**: Multi-syllable lyrics in Asian and Western languages lose their hyphenation or stick together without word spaces.
-
-**OpenJianpu was built to solve these challenges with mathematical rigor**:
-- **0.4s compilation** per score directly via pure Python and PyCairo vector primitives.
-- **Zero silent corruption**: Rhythm is mathematically audited against time signatures; unambiguous defects are deterministically fixed, and remaining source errors are transparently flagged on the printed PDF (`! m27`).
-- **PUEBI & Multilingual linguistic rules**: Intelligent syllable hyphenation and sticky-word splitting.
-
----
-
-## 🚀 Key Engineering Innovations
-
-### 1. Standalone Vector Engraving Engine (PyCairo)
-- **Zero LilyPond / LaTeX dependencies**: Renders directly to vector PDF using high-precision Cairo paths.
-- **Dynamic Collision Avoidance**: Multi-pass lyric layout with elastic font scaling (from 9.5pt down to 6.5pt) to ensure syllables never overlap or breach measure boundaries.
-- **Publication Ornaments**: Native rendering of octave dots (above/below numerals), accidental slashes, duration beams, curved melisma ties, dynamic hairpins (`cresc.`, `dim.`), fermatas, repeat barlines, and numbered voltas (kamar 1 & 2).
-
-### 2. Intelligent SATB Choral Routing & Divisi Splitting
-- **Closed Score Separation**: Automatically identifies two-stave choral setups and routes voices into independent Soprano, Alto, Tenor, and Bass lines based on staff clefs, note pitch medians, and voice numbers.
-- **Divisi Detection**: Voices containing polyphonic chords on $\ge 20\%$ of measures are automatically factored into distinct split parts (e.g. S1/S2 or S/A).
-- **Accidental Chord Parsing**: Occasional chord clusters take the lowest pitch for Basses and highest pitch for upper voices, correctly inheriting root note durations.
-
-### 3. Metric Engine & Single Source of Truth (`meter.py`)
-- **Strict Metric Grouping**: Sukat and time signatures dictate exact beam partitions (e.g., $7/8 = 2+2+3$, $9/8 = 3+3+3$, $6/8 = 3+3$).
-- **Sub-Beat Beamed Extension Dots & Rests**: Dots and rests belonging to fractional sub-beats are grouped under beams (e.g. `3 .̅ 3̅` or `0̅ 3̅`), adhering to authentic hymnal printing conventions (*Puji Syukur 347b & 390b*).
-- **Compound Meter Support**: Default `--beat-unit quarter` groups 6/8 into 2 compound dotted-quarter beats ($\overline{1\ 2\ 3}\ \overline{4\ 5\ 6}$), while `--beat-unit denominator` serves slow 6-beat adagio measures.
-
-### 4. Deterministic Error Recovery & Visual Diagnostic
-When processing MusicXML from OCR/OMR, OpenJianpu applies strict, non-speculative repairs:
-- **Trailing Phantom Rests**: Automatically prunes unvoiced rests at the end of a measure if and only if removing them exactly equals the meter's capacity.
-- **Unbracketed 1/8 Triplets**: Automatically recovers triplets when 3 consecutive eighth notes exceed the measure by exactly 1 eighth note and the candidate group is unique.
-- **Transparent Barline Warning (`! m<n>`)**: If source notes remain rhythmically overflowing, OpenJianpu **refuses to guess or alter pitches**. Instead, it renders the score gracefully and imprints a clear diagnostic flag `! m27` above the barline, alerting choir directors during rehearsals.
-
-### 5. PUEBI & Multilingual Syllable Engine
-- **Grammar-Aware Syllabification**: Integrates formal Indonesian orthography rules (PUEBI: `V-V`, `V-KV`, `VK-KV`, `VK-KKV` with inseparable digraphs `ng`, `ny`, `sy`, `kh`, `gh`).
-- **OMR Sticky-Word Repair (`tambal_lirik.py`)**: Uses vacant notes as exact arithmetic verifiers to redistribute merged words without guessing (99.1% precision).
-- **CamelCase Boundary Splitting**: Automatically unglues concatenated text like `keHadiratMu` $\rightarrow$ `ke Hadirat-Mu` and `padaNya` $\rightarrow$ `pada-Nya`.
-
----
-
-## 🛠️ Pipeline Architecture
+<p align="center">
+  <b>English</b> |
+  <a href="README.id.md">Bahasa Indonesia</a>
+</p>
 
 ```
-                                 ┌────────────────────────────────┐
-                                 │   MusicXML / MXL / Sheet PDF   │
-                                 └───────────────┬────────────────┘
-                                                 │
-                                                 ▼
-                                  ┌──────────────────────────────┐
-                                  │   xml_parser & degreelib     │
-                                  │   - Movable-Do Pitch Mapper  │
-                                  │   - Closed-Score SATB Router │
-                                  │   - Divisi Chord Extractor   │
-                                  └──────────────┬───────────────┘
-                                                 │
-                        ┌────────────────────────┴────────────────────────┐
-                        ▼                                                 ▼
-         ┌──────────────────────────────┐                  ┌──────────────────────────────┐
-         │     Rhythm & Meter Audit     │                  │   PUEBI Syllable Engine      │
-         │   - Phantom Rest Pruning     │                  │   - Sticky Word Splitting    │
-         │   - Unbracketed Triplet Fix  │                  │   - CamelCase Boundary Fix   │
-         │   - Barline Flagging (! mX)  │                  │   - Optional --lyrics-file   │
-         └──────────────┬───────────────┘                  └──────────────┬───────────────┘
-                        │                                                 │
-                        └────────────────────────┬────────────────────────┘
-                                                 │
-                                                 ▼
-                                  ┌──────────────────────────────┐
-                                  │   NotAngkaScore JSON Model   │
-                                  └──────────────┬───────────────┘
-                                                 │
-                                                 ▼
-                                  ┌──────────────────────────────┐
-                                  │    PyCairo Vector Engine     │
-                                  │   - Layout & System Break    │
-                                  │   - Anti-Collision Lyrics    │
-                                  │   - Beams, Ties, Ornaments   │
-                                  └──────────────┬───────────────┘
-                                                 │
-                                                 ▼
-                                  ┌──────────────────────────────┐
-                                  │  Publication-Grade PDF       │
-                                  └──────────────────────────────┘
+  Western Sheet Music / MusicXML                        OpenJianpu Vector PDF
+ ┌──────────────────────────────┐                      ┌──────────────────────────────┐
+ │   𝄞 4 𝅘𝅥   𝅘𝅥   𝅗𝅥            │      OpenJianpu      │   1=F  4/4                   │
+ │     4 ♩   ♩   𝅗              │   ───────────────►   │   | 1   3   5   . |          │
+ │       Hal-le - lu            │     (< 0.5 sec)      │     Hal-le - lu    -         │
+ └──────────────────────────────┘                      └──────────────────────────────┘
 ```
+
+**OpenJianpu** converts **MusicXML**, compressed `.mxl`, and Western sheet music directly into publication-grade **Numbered Musical Notation** (*Jianpu / Not Angka*). 
+
+Engineered specifically for SATB choirs, vocal ensembles, and church hymnals, OpenJianpu renders crisp, vector PDFs in sub-second time using PyCairo—**completely independent of GNU LilyPond, MuseScore, or JVM runtimes**.
 
 ---
 
-## 📦 Installation
+## ⚡ Quick Start
 
-### 1. Prerequisites
-OpenJianpu requires the `cairo` graphics library and standard Liberation fonts:
+### Installation
 
-- **Ubuntu / Debian**:
-  ```bash
-  sudo apt-get update
-  sudo apt-get install -y libcairo2-dev pkg-config fonts-liberation
-  ```
-- **Fedora / RHEL**:
-  ```bash
-  sudo dnf install cairo-devel pkgconf-pkg-config liberation-sans-fonts
-  ```
-- **macOS** (Homebrew):
-  ```bash
-  brew install cairo pkg-config
-  ```
-- **Windows**:
-  Standard wheels for `pycairo` are automatically provided by `pip`.
-
-### 2. Install OpenJianpu
-Clone the repository and install in editable/development or standard mode:
 ```bash
-git clone https://github.com/Alvnvnc/OpenJianpu.git
-cd OpenJianpu
-pip install .
+# System dependencies (Ubuntu / Debian)
+sudo apt-get update && sudo apt-get install -y libcairo2-dev pkg-config fonts-liberation
+
+# macOS (Homebrew)
+brew install cairo pkg-config
+
+# Install OpenJianpu
+pip install git+https://github.com/Alvnvnc/OpenJianpu.git
 ```
 
-To install development dependencies (for running tests):
+### 1-Line Usage
+
 ```bash
-pip install .[dev]
+# Convert any MusicXML score directly to a vector PDF
+openjianpu convert score.musicxml -o output.pdf
+
+# Audit rhythm, metric capacity, and barline consistency
+openjianpu check score.musicxml -v
 ```
 
 ---
 
-## 💻 CLI Reference & Usage
+## 🎯 Why OpenJianpu?
 
-OpenJianpu provides the `openjianpu` CLI (with `notangka` available as an identical alias).
+Numbered musical notation (where digits `1` through `7` represent movable-Do scale degrees) is the primary musical language for hundreds of millions of singers across Asia (China, Taiwan, Indonesia, Singapore) and global vocal ensembles.
 
-### 1. Convert MusicXML to PDF
-Convert any standard `.musicxml`, `.xml`, or compressed `.mxl` score:
-```bash
-openjianpu convert hymn.musicxml -o hymn_numbered.pdf
+However, Western engraving suites (Sibelius, Finale, Dorico, MuseScore) fundamentally treat notation through five-line staves. Previous automated converters suffered from critical barriers:
+
+1. **Heavy Toolchain Overhead**: Tools like `jianpu-ly` require a full GNU LilyPond environment, consuming hundreds of megabytes and taking 15–30 seconds per compile.
+2. **Choral Voice Collapse**: Conventional converters fail when 4 choral voices (SATB) are condensed into two closed staves (Treble: Soprano/Alto, Bass: Tenor/Bass), merging lines into unreadable chords or losing vocal assignments.
+3. **Silent Rhythmic Corruption**: MusicXML originating from Optical Music Recognition (OMR) frequently contains scanning artifacts (dust specks recognized as dots, missing tuplet brackets, phantom rests). Guessing notes blindly leads to silent corruption during choir rehearsals.
+4. **Mangled Lyrics**: Syllables from non-English or hyphenated texts frequently lose syllable boundaries or stick together without word spaces.
+
+**OpenJianpu solves all four problems through purpose-built engineering**:
+- **Blazing Fast**: Compiles in **< 0.5s** per score via pure Python and PyCairo vector geometry.
+- **Zero Silent Corruption**: Strict metric auditing against time signatures. Deterministic fixes are applied only when mathematically unambiguous; remaining defects are visually flagged (`! m27`) on the printed PDF.
+- **Smart Closed-Score Routing**: Automatically splits 2-staff SATB hymns into 4 independent vocal lines.
+- **Linguistic Syllable Alignment**: Built-in grammar-based syllable hyphenation and sticky-word splitting.
+
+---
+
+## ✨ Features
+
+- **🚀 Standalone Vector Typesetting**: Direct-to-PDF vector output without LilyPond, LaTeX, or external typesetting binaries.
+- **👥 Automatic SATB Choral Routing**:
+  - Automatically splits 2-stave choral scores into independent Soprano, Alto, Tenor, and Bass systems.
+  - Detects divisi chords ($\ge 20\%$ of measures) and splits them into separate parallel voices (S1/S2 or S/A).
+  - Handles occasional chords cleanly (assigning lowest pitch to Bass and highest to upper voices).
+- **⏱️ Deterministic Rhythmic Engine (`meter.py`)**:
+  - Strict metric grouping for simple (2/4, 3/4, 4/4, 2/2) and compound meters (6/8, 9/8, 12/8, 7/8).
+  - Beamed sub-beat prolongation dots and rests (e.g. `3 .̅ 3̅` and `0̅ 3̅`), adhering to printed hymnal standards.
+  - Dual 6/8 meter policies: `--beat-unit quarter` (2 compound dotted-quarter beats: $\overline{1\ 2\ 3}\ \overline{4\ 5\ 6}$) or `--beat-unit denominator` (6 simple beats).
+- **🛡️ Safe Error Recovery & Visual Barline Diagnostics**:
+  - Automatically prunes trailing phantom rests when removing them makes measure duration exactly equal capacity.
+  - Automatically restores unambiguous unbracketed 1/8 triplets.
+  - Displays a diagnostic flag `! m<number>` above the barline for uncorrected source errors instead of silently guessing pitches.
+- **📝 Intelligent Syllable Engine**:
+  - Syllabification engine handling multi-syllable word division and digraph preservation (`ng`, `ny`, `sy`, `kh`).
+  - Automatic CamelCase splitting (`praiseTheLord` → `praise The Lord`).
+  - Custom lyric override via `--lyrics-file` with melisma support (`_`).
+- **🔄 Two-Way JSON Architecture**:
+  - Decouple parsing and rendering: export MusicXML to a clean JSON schema (`xml2json`), inspect or edit, and render back to PDF (`render`).
+
+---
+
+## 💻 CLI Reference
+
+OpenJianpu provides the `openjianpu` command (with `notangka` available as an identical alias).
+
+```
+usage: openjianpu [-h] [--version] {convert,check,xml2json,render} ...
 ```
 
-#### Key Options:
-| Flag | Description | Default |
+### 1. `convert` — MusicXML to Numbered Notation PDF
+```bash
+openjianpu convert input.musicxml -o output.pdf [OPTIONS]
+```
+
+| Option | Description | Default |
 |---|---|---|
-| `-o, --output` | Target PDF file path | `<input>_notangka.pdf` |
+| `-o, --output` | Output PDF file path | `<input>_notangka.pdf` |
 | `--title` | Override score title | Extracted from MusicXML |
 | `--composer` | Override composer name | Extracted from MusicXML |
-| `--lyricist` | Override lyricist/poet name | Extracted from MusicXML |
+| `--arranger` | Override arranger name | Extracted from MusicXML |
+| `--lyricist` | Override lyricist name | Extracted from MusicXML |
+| `--subtitle` | Custom subtitle | Extracted from MusicXML |
 | `--beat-unit` | Beat unit policy: `quarter` or `denominator` | `quarter` |
-| `--lyrics-file` | Path to clean external text file to map lyrics | `None` |
-| `--no-tambal-lirik` | Disable automatic PUEBI sticky-word splitting | `False` (enabled) |
-| `--save-json` | Also save the intermediate JSON schema | `None` |
+| `--lyrics-file` | Path to clean external lyric file | `None` |
+| `--no-tambal-lirik` | Disable automatic sticky-syllable splitting | `False` (enabled) |
+| `--save-json` | Save intermediate JSON schema | `None` |
 
-### 2. Audit Rhythm and Meter Consistency
-Inspect whether measure note sums match time signature capacities:
+### 2. `check` — Rhythmic & Metric Consistency Audit
+Audit note durations against measure capacity across all vocal lines:
 ```bash
-openjianpu check hymn.musicxml -v
+openjianpu check input.musicxml -v
 ```
-*Sample Output:*
+
+*Example Audit Output:*
 ```text
-Sukat awal 4/4, satuan ketuk: quarter
-m1    4/4      kap 4     penuh
-m2    4/4      kap 4     LEBIH S=4.5; tak baku S:1@4/0.5
-Ringkasan: 2 birama · 8 suara-birama · 7 penuh · 0 kurang · 1 LEBIH · 1 simbol tak baku
-Status: GAGAL (ada birama meluap atau simbol tak baku)
+Initial meter: 4/4, beat unit: quarter
+m1    4/4      cap 4.0   full
+m2    4/4      cap 4.0   OVERFLOW S=4.5; non-standard S:1@4/0.5
+Summary: 2 measures · 8 voice-measures · 7 full · 0 under · 1 OVERFLOW
+Status: FAILED (overflowing measures or non-standard symbols detected)
 ```
 
-### 3. Two-Way JSON Interchange
-You can decouple score extraction from PDF rendering. This allows manual editing or programmatic score transformations:
+### 3. `xml2json` — Extract to Structured JSON
 ```bash
-# Step 1: Extract MusicXML to human-readable JSON
-openjianpu xml2json hymn.musicxml -o hymn.json
-
-# Step 2: Edit hymn.json if needed, then render
-openjianpu render hymn.json -o hymn_final.pdf
+openjianpu xml2json input.musicxml -o score.json
 ```
 
-### 4. External Lyric Alignment (`--lyrics-file`)
-If the source MusicXML has severely mangled lyrics, provide a clean text file (`syair.txt`):
-```text
-# General line applies to all vocal parts
-Ha-le-lu-ya, pu-ji-lah Tu-han
-
-# Voice-specific lines:
-S: Kha-las dan mu-li-a
-A 2: Bait ke-dua khu-sus al-to
-
-# Special tokens:
-# '_' is a melisma (note without a syllable)
-# '|' is an optional visual barline divider
-```
-Then run:
+### 4. `render` — Render JSON to Vector PDF
 ```bash
-openjianpu convert hymn.musicxml --lyrics-file syair.txt -o hymn.pdf
+openjianpu render score.json -o score.pdf
 ```
 
 ---
 
-## 🎼 Notation Conventions & Standards
+## 🎼 Notation Reference & Standards
 
-OpenJianpu adheres to international *Jianpu* guidelines and Indonesian liturgical standards (*PML Yogyakarta, Yamuger, lagumisa.web.id*):
-
-| Element | Engraving Style | Description |
+| Musical Element | Visual Output | Description |
 |---|---|---|
 | **Pitches** | `1 2 3 4 5 6 7` | Scale degrees relative to key tonic ($1 = \text{Do}$) |
-| **Rest** | `0` | Silent pause; sub-beat rests take beams (`0̅`) |
-| **Octave Shift** | `1̇` / `1̣` | Dots placed vertically above (high) or below (low) |
-| **Accidentals** | `1/` (kres), `7\` (mol) | Diagonal slash through numeral indicating chromatic alteration |
-| **Duration Dots** | `1 .` / `3 .̅` | Prolongation dots; sub-beat dots inherit beam lines |
+| **Rest** | `0` | Silent beat; sub-beat rests take beams (`0̅`) |
+| **Octave Shift** | `1̇` / `1̣` | Dots placed vertically above (higher octave) or below (lower octave) |
+| **Accidentals** | `1/` (sharp), `7\` (flat) | Diagonal slash through numeral indicating chromatic semitone shift |
+| **Duration Dots** | `1 .` / `3 .̅` | Prolongation dot; sub-beat dots inherit beam lines |
 | **Beams** | $\overline{1\ 2}$, $\overline{\overline{1\ 2}}$ | Horizontal lines above numerals denoting eighth and sixteenth notes |
 | **Compound 6/8** | $\overline{1\ 2\ 3}\quad \overline{4\ 5\ 6}$ | Grouped in 3-eighth bundles (2 compound beats per measure) |
-| **Defective Flag** | `! m27` | Red/amber indicator above barline when measure durations overflow |
+| **Repeat Barlines** | `|:   :|` | Standard forward and backward section repeat signs |
+| **Voltas** | `┌ 1. ──┐  ┌ 2. ──┐` | 1st and 2nd alternate endings |
+| **Melisma** | `(1  2)` | Curved slurs connecting notes sung on a single syllable |
+| **Defective Flag** | `! m27` | Diagnostic indicator printed above barline on overflowing measures |
+
+---
+
+## 📝 Custom Lyric File Syntax (`--lyrics-file`)
+
+When processing damaged OMR files with broken text, provide a clean text file (`lyrics.txt`):
+
+```text
+# Lines without prefixes apply to all singing voices:
+Hal-le-lu-jah, praise the Lord on high
+
+# Voice-specific prefixes:
+S: On-ly so-pran-os sing this line
+2: Se-cond verse text goes here
+A 2: Al-to on-ly for verse two
+
+# Special tokens:
+# '_' marks a melisma (note without a syllable)
+# '|' is an optional barline separator
+```
+
+Apply it during conversion:
+```bash
+openjianpu convert score.musicxml --lyrics-file lyrics.txt -o score.pdf
+```
 
 ---
 
 ## 🐍 Python API
 
-Integrate OpenJianpu directly into your Python pipelines or web applications:
+Integrate OpenJianpu into custom Python applications, web services, or music pipelines:
 
 ```python
 from openjianpu import (
     parse_musicxml_to_score,
     NotAngkaRenderer,
     check_score,
-    apply_lyrics_file
 )
 
-# 1. Parse MusicXML to intermediate score model
+# 1. Parse MusicXML into the intermediate score model
 score = parse_musicxml_to_score("anthem.musicxml", beat_unit="quarter")
 
-# 2. Optionally apply clean lyrics
-# apply_lyrics_file(score, "clean_lyrics.txt")
-
-# 3. Perform rhythm and metric audit
+# 2. Audit rhythmic consistency
 report = check_score(score)
-print(f"Measures: {len(score.measures)}, Overflows: {report.n_over}")
+if not report.ok:
+    print(f"Audit warning: {report.n_over} overflowing measures detected.")
 
-# 4. Render to vector PDF
-renderer = NotAngkaRenderer(score, "anthem_notangka.pdf")
+# 3. Render directly to vector PDF
+renderer = NotAngkaRenderer(score, "anthem_numbered.pdf")
 renderer.render()
-print("Successfully generated vector PDF.")
+print("Generated publication-ready vector PDF.")
 ```
 
 ---
 
 ## 📊 Corpus Benchmark & Verification
 
-OpenJianpu was hardened against an extensive empirical dataset:
-- **259 real-world choral MusicXML scores** parsed and engraved with **0 crashes / tracebacks**.
-- **67 automated regression tests** covering accidentals, cross-measure voice routing, pickup measures (anacrusis), tuplets, and font scaling.
-- **Rhythm Recovery Audit**: In a benchmark of 1,075 overflowing voice-measures from OCR:
+OpenJianpu has been validated against an empirical choral dataset:
+- **259 real-world choral MusicXML scores** parsed and typeset with **0 crashes / tracebacks**.
+- **60+ regression tests** covering accidentals, cross-measure voice routing, pickup measures (anacrusis), tuplets, and font scaling.
+- **Rhythm Recovery Benchmark** (on 1,075 overflowing voice-measures from OCR):
   - **123 phantom rests** safely eliminated.
   - **59 unbracketed triplets** unambiguously restored.
   - **93 net reduction in overflow defects** without altering a single sung note.
@@ -287,17 +238,17 @@ OpenJianpu was hardened against an extensive empirical dataset:
 
 ## 🤝 Contributing
 
-Contributions from the global music technology, choral, and open-source communities are warmly welcomed!
-1. Fork the Project.
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`).
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`).
-4. Push to the Branch (`git push origin feature/AmazingFeature`).
+Contributions from the international music technology and choral communities are welcome!
+1. Fork the repository (`https://github.com/Alvnvnc/OpenJianpu/fork`).
+2. Create your feature branch (`git checkout -b feature/NewFeature`).
+3. Commit your changes (`git commit -m 'feat: Add NewFeature'`).
+4. Push to the branch (`git push origin feature/NewFeature`).
 5. Open a Pull Request.
 
 ---
 
 ## 📄 License
 
-Distributed under the **MIT License**. See [LICENSE](LICENSE) for more information.
+Distributed under the **MIT License**. See [LICENSE](LICENSE) for details.
 
-Developed by **Alvin Vincent** & the open-source choral community.
+Developed with passion by **Alvin Vincent** and the open-source choral community.
